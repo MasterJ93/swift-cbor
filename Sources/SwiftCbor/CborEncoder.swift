@@ -1,6 +1,6 @@
 import Foundation
 
-private protocol _CborDictionaryEncodableMarker {}
+internal protocol _CborDictionaryEncodableMarker {}
 
 extension Dictionary: _CborDictionaryEncodableMarker where Key: Encodable, Value: Encodable {}
 
@@ -22,7 +22,7 @@ open class CborEncoder {
     }
 }
 
-private class _CborEncoder: Encoder {
+internal class _CborEncoder: Encoder {
     public var codingPath: [CodingKey] = []
     public var userInfo: [CodingUserInfoKey: Any] = [:]
 
@@ -77,14 +77,14 @@ extension _CborEncoder: _SpecialTreatmentEncoder {
     }
 }
 
-private enum CborFuture {
+internal enum CborFuture {
     case value(CborEncodedValue)
     case encoder(_CborEncoder)
     case nestedArray(RefArray)
     case nestedMap(RefMap)
 
     class RefArray {
-        private(set) var array: [CborFuture] = []
+        var array: [CborFuture] = []
 
         init() {
             array.reserveCapacity(10)
@@ -117,30 +117,30 @@ private enum CborFuture {
         var values: [CborEncodedValue] {
             array.compactMap { future in
                 switch future {
-                case let .value(value):
-                    return value
-                case let .nestedArray(array):
-                    return .array(array.values)
-                case let .nestedMap(map):
-                    let values = map.values
-                    let n = values.count
-                    var a: [CborEncodedValue] = []
-                    a.reserveCapacity(n * 2)
-                    for (k, v) in values {
-                        a.append(k)
-                        a.append(v)
-                    }
-                    return .map(a)
-                case let .encoder(encoder):
-                    return encoder.value
+                    case let .value(value):
+                        return value
+                    case let .nestedArray(array):
+                        return .array(array.values)
+                    case let .nestedMap(map):
+                        let values = map.values
+                        let n = values.count
+                        var a: [CborEncodedValue] = []
+                        a.reserveCapacity(n * 2)
+                        for (k, v) in values {
+                            a.append(k)
+                            a.append(v)
+                        }
+                        return .map(a)
+                    case let .encoder(encoder):
+                        return encoder.value
                 }
             }
         }
     }
 
     class RefMap {
-        private(set) var keys: [CborStringKey] = []
-        private(set) var dict: [String: CborFuture] = [:]
+        var keys: [CborStringKey] = []
+        var dict: [String: CborFuture] = [:]
         init() {
             dict.reserveCapacity(20)
         }
@@ -156,92 +156,92 @@ private enum CborFuture {
         @inline(__always)
         func setArray(for key: CborStringKey) -> RefArray {
             switch dict[key.stringValue] {
-            case let .nestedArray(array):
-                return array
-            case .value:
-                let array: CborFuture.RefArray = .init()
-                dict[key.stringValue] = .nestedArray(array)
-                return array
-            case .none:
-                let array: CborFuture.RefArray = .init()
-                dict[key.stringValue] = .nestedArray(array)
-                keys.append(key)
-                return array
-            case .nestedMap:
-                preconditionFailure("For key \"\(key)\" a keyed container has already been created.")
-            case .encoder:
-                preconditionFailure("For key \"\(key)\" an encoder has already been created.")
+                case let .nestedArray(array):
+                    return array
+                case .value:
+                    let array: CborFuture.RefArray = .init()
+                    dict[key.stringValue] = .nestedArray(array)
+                    return array
+                case .none:
+                    let array: CborFuture.RefArray = .init()
+                    dict[key.stringValue] = .nestedArray(array)
+                    keys.append(key)
+                    return array
+                case .nestedMap:
+                    preconditionFailure("For key \"\(key)\" a keyed container has already been created.")
+                case .encoder:
+                    preconditionFailure("For key \"\(key)\" an encoder has already been created.")
             }
         }
 
         @inline(__always)
         func setMap(for key: CborStringKey) -> RefMap {
             switch dict[key.stringValue] {
-            case let .nestedMap(map):
-                return map
-            case .value:
-                let map: CborFuture.RefMap = .init()
-                dict[key.stringValue] = .nestedMap(map)
-                return map
-            case .none:
-                let map: CborFuture.RefMap = .init()
-                dict[key.stringValue] = .nestedMap(map)
-                keys.append(key)
-                return map
-            case .nestedArray:
-                preconditionFailure("For key \"\(key)\" a unkeyed container has already been created.")
-            case .encoder:
-                preconditionFailure("For key \"\(key)\" an encoder has already been created.")
+                case let .nestedMap(map):
+                    return map
+                case .value:
+                    let map: CborFuture.RefMap = .init()
+                    dict[key.stringValue] = .nestedMap(map)
+                    return map
+                case .none:
+                    let map: CborFuture.RefMap = .init()
+                    dict[key.stringValue] = .nestedMap(map)
+                    keys.append(key)
+                    return map
+                case .nestedArray:
+                    preconditionFailure("For key \"\(key)\" a unkeyed container has already been created.")
+                case .encoder:
+                    preconditionFailure("For key \"\(key)\" an encoder has already been created.")
             }
         }
 
         @inline(__always)
         func set(_ encoder: _CborEncoder, for key: CborStringKey) {
             switch dict[key.stringValue] {
-            case .encoder:
-                preconditionFailure("For key \"\(key)\" an encoder has already been created.")
-            case .nestedMap:
-                preconditionFailure("For key \"\(key)\" a keyed container has already been created.")
-            case .nestedArray:
-                preconditionFailure("For key \"\(key)\" a unkeyed container has already been created.")
-            case .value:
-                dict[key.stringValue] = .encoder(encoder)
-            case .none:
-                dict[key.stringValue] = .encoder(encoder)
-                keys.append(key)
+                case .encoder:
+                    preconditionFailure("For key \"\(key)\" an encoder has already been created.")
+                case .nestedMap:
+                    preconditionFailure("For key \"\(key)\" a keyed container has already been created.")
+                case .nestedArray:
+                    preconditionFailure("For key \"\(key)\" a unkeyed container has already been created.")
+                case .value:
+                    dict[key.stringValue] = .encoder(encoder)
+                case .none:
+                    dict[key.stringValue] = .encoder(encoder)
+                    keys.append(key)
             }
         }
 
         var values: [(CborEncodedValue, CborEncodedValue)] {
             keys.compactMap {
                 switch dict[$0.stringValue] {
-                case let .value(value):
-                    return ($0.CborValue, value)
-                case let .nestedArray(array):
-                    return ($0.CborValue, .array(array.values))
-                case let .nestedMap(map):
-                    var a: [CborEncodedValue] = []
-                    let values = map.values
-                    a.reserveCapacity(values.count * 2)
-                    for (k, v) in map.values {
-                        a.append(k)
-                        a.append(v)
-                    }
-                    return ($0.CborValue, .map(a))
-                case let .encoder(encoder):
-                    guard let value = encoder.value else {
+                    case let .value(value):
+                        return ($0.CborValue, value)
+                    case let .nestedArray(array):
+                        return ($0.CborValue, .array(array.values))
+                    case let .nestedMap(map):
+                        var a: [CborEncodedValue] = []
+                        let values = map.values
+                        a.reserveCapacity(values.count * 2)
+                        for (k, v) in map.values {
+                            a.append(k)
+                            a.append(v)
+                        }
+                        return ($0.CborValue, .map(a))
+                    case let .encoder(encoder):
+                        guard let value = encoder.value else {
+                            return nil
+                        }
+                        return ($0.CborValue, value)
+                    case .none:
                         return nil
-                    }
-                    return ($0.CborValue, value)
-                case .none:
-                    return nil
                 }
             }
         }
     }
 }
 
-private protocol _SpecialTreatmentEncoder {
+internal protocol _SpecialTreatmentEncoder {
     var codingPath: [CodingKey] { get }
     var encoder: _CborEncoder { get }
 }
@@ -252,7 +252,7 @@ extension FixedWidthInteger {
     }
 }
 
-private extension _SpecialTreatmentEncoder {
+internal extension _SpecialTreatmentEncoder {
     func wrapFloat<F: FloatingPoint & DataNumber>(_ value: F, for additionalKey: CodingKey?) throws -> CborEncodedValue {
         let bits = value.bytes
         if bits.count == 2 {
@@ -344,14 +344,14 @@ private extension _SpecialTreatmentEncoder {
     func wrapEncodable(_ encodable: some Encodable, for additionalKey: CodingKey?) throws -> CborEncodedValue? {
         let encoder = getEncoder(for: additionalKey)
         switch encodable {
-        case let data as Data:
-            return try wrapData(data, for: additionalKey)
-        case let cborEncodable as CborEncodable:
-            return try wrapCborEncodable(cborEncodable, for: additionalKey)
-        case let float16 as Float16:
-            return try wrapFloat(float16, for: additionalKey)
-        default:
-            try encodable.encode(to: encoder)
+            case let data as Data:
+                return try wrapData(data, for: additionalKey)
+            case let cborEncodable as CborEncodable:
+                return try wrapCborEncodable(cborEncodable, for: additionalKey)
+            case let float16 as Float16:
+                return try wrapFloat(float16, for: additionalKey)
+            default:
+                try encodable.encode(to: encoder)
         }
 
         if (encodable as? _CborDictionaryEncodableMarker) != nil {
@@ -399,7 +399,7 @@ private extension _SpecialTreatmentEncoder {
     }
 }
 
-private struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, _SpecialTreatmentEncoder {
+internal struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, _SpecialTreatmentEncoder {
     let encoder: _CborEncoder
     let codingPath: [CodingKey]
 
@@ -473,20 +473,20 @@ private struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, _
     }
 
     @inline(__always)
-    private func encodeInt<T: SignedInteger & FixedWidthInteger>(_ value: T) throws {
+    internal func encodeInt<T: SignedInteger & FixedWidthInteger>(_ value: T) throws {
         encoder.singleValue = try encoder.wrapInt(value, for: nil)
     }
 
     @inline(__always)
-    private func encodeFloat<T: FloatingPoint & DataNumber>(_ value: T) throws {
+    internal func encodeFloat<T: FloatingPoint & DataNumber>(_ value: T) throws {
         encoder.singleValue = try encoder.wrapFloat(value, for: nil)
     }
 }
 
-private struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
-    private let encoder: _CborEncoder
+internal struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+    internal let encoder: _CborEncoder
     let array: CborFuture.RefArray
-    private(set) var codingPath: [CodingKey]
+    var codingPath: [CodingKey]
     var count: Int {
         array.array.count
     }
@@ -569,15 +569,15 @@ private struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         array.append(encoded ?? .Nil)
     }
 
-    private func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger) throws {
+    internal func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger) throws {
         try array.append(encoder.wrapUInt(value, for: nil))
     }
 
-    private func encodeInt(_ value: some SignedInteger & FixedWidthInteger) throws {
+    internal func encodeInt(_ value: some SignedInteger & FixedWidthInteger) throws {
         try array.append(encoder.wrapInt(value, for: nil))
     }
 
-    private func encodeFloat(_ value: some FloatingPoint & DataNumber) throws {
+    internal func encodeFloat(_ value: some FloatingPoint & DataNumber) throws {
         try array.append(encoder.wrapFloat(value, for: nil))
     }
 
@@ -602,12 +602,12 @@ private struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     }
 }
 
-private struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol {
+internal struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol {
     typealias Key = K
 
-    private let encoder: _CborEncoder
+    internal let encoder: _CborEncoder
     let map: CborFuture.RefMap
-    private(set) var codingPath: [CodingKey]
+    var codingPath: [CodingKey]
 
     init(referencing encoder: _CborEncoder, codingPath: [CodingKey]) {
         self.encoder = encoder
@@ -714,17 +714,17 @@ private struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerP
         return newEncoder
     }
 
-    private func encodeFloat(_ value: some FloatingPoint & DataNumber, for key: Key) throws {
+    internal func encodeFloat(_ value: some FloatingPoint & DataNumber, for key: Key) throws {
         let value = try encoder.wrapFloat(value, for: nil)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
 
-    private func encodeInt(_ value: some SignedInteger & FixedWidthInteger, for key: Key) throws {
+    internal func encodeInt(_ value: some SignedInteger & FixedWidthInteger, for key: Key) throws {
         let value = try encoder.wrapInt(value, for: key)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
 
-    private func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger, forKey key: Key) throws {
+    internal func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger, forKey key: Key) throws {
         let value = try encoder.wrapUInt(value, for: key)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
