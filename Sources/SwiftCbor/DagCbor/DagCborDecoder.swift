@@ -9,11 +9,9 @@ open class DagCborDecoder: CborDecoder {
         let scanner = CborScanner(data: data)
         let value = scanner.scan()
 
-        // 🔍 Pre-validate DAG-CBOR constraints
         try validateDagCbor(value, codingPath: [])
 
-        // ✅ Decode only after validating
-        let decoder = _CborDecoder(from: value) // Not DagCborDecoder; no override needed
+        let decoder = _CborDecoder(from: value)
         return try decoder.unwrap(as: T.self)
     }
 
@@ -65,7 +63,6 @@ open class DagCborDecoder: CborDecoder {
                     let key = pairs[i]
                     let val = pairs[i + 1]
 
-                    // Require that the key is a string literal
                     if case .literal(.str(let keyData)) = key {
                         let keyStr = String(decoding: keyData, as: UTF8.self)
                         if !seenKeys.insert(keyStr).inserted {
@@ -95,7 +92,6 @@ open class DagCborDecoder: CborDecoder {
 internal class _DagCborDecoder: _CborDecoder {
 
     public func unwrapDagCbor<T: Decodable>(as type: T.Type) throws -> T {
-        // Reject indefinite-length arrays
         if case .array(_, true) = value {
             throw DecodingError.dataCorrupted(DecodingError.Context(
                 codingPath: codingPath,
