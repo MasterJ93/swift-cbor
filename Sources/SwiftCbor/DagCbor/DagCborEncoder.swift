@@ -32,7 +32,7 @@ internal class _DagCborEncoder: _CborEncoder {
     public func wrapEncodable(_ encodable: some Encodable, for additionalKey: CodingKey?) throws -> CborEncodedValue? {
         if let cid = encodable as? CidProtocol {
             let rawData = try cid.rawData
-            let bytes = [UInt8](rawData)
+            let bytes = [0x00] + [UInt8](rawData)
             let tag = try wrapUInt(UInt64(42), majorType: 0b1100_0000, for: additionalKey)
             return .tagged(tag: tag, value: .literal(bytes))
         }
