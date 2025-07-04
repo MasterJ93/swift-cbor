@@ -692,7 +692,7 @@ private struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerP
     private(set) var codingPath: [CodingKey]
     private var container: [String: CborValue]
 
-    static func asDictionary(value CborValue: CborValue, using decoder: _CborDecoder) -> [String: CborValue] {
+    static func asDictionary(value CborValue: CborValue, using decoder: _CborDecoder) throws -> [String: CborValue] {
         var result: [String: CborValue] = [:]
         let a = try CborValue.asDictionary()
         result.reserveCapacity(a.count)
@@ -706,9 +706,9 @@ private struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerP
         return result
     }
 
-    init(referencing decoder: _CborDecoder, container: CborValue) {
+    init(referencing decoder: _CborDecoder, container: CborValue) throws {
         self.decoder = decoder
-        self.container = Self.asDictionary(value: container, using: decoder)
+        self.container = try Self.asDictionary(value: container, using: decoder)
         codingPath = decoder.codingPath
     }
 

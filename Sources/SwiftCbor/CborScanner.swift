@@ -88,15 +88,12 @@ public class CborScanner {
 
     private func scanArray(additional c: UInt8) -> CborValue {
         var a: [CborValue] = []
-        let indefinite: Bool
         if let n = getLength(c: c) {
-            indefinite = false
             a.reserveCapacity(n)
-            for _ in 0..<n {
+            for _ in 0 ..< n {
                 a.append(scan())
             }
         } else {
-            indefinite = true
             while true {
                 let e = scan()
                 if case .literal(.break) = e {
@@ -105,35 +102,32 @@ public class CborScanner {
                 a.append(e)
             }
         }
-        return .array(a, isIndefinite: indefinite)
+        return .array(a)
     }
 
     private func scanMap(additional c: UInt8) -> CborValue {
         var a: [CborValue] = []
-        let indefinite: Bool
         if let n = getLength(c: c) {
-            indefinite = false
             a.reserveCapacity(n)
-            for _ in 0..<n {
+            for _ in 0 ..< n {
                 a.append(scan())
                 a.append(scan())
             }
         } else {
-            indefinite = true
             while true {
                 let k = scan()
                 if case .literal(.break) = k {
                     break
                 }
                 let v = scan()
-                if case .literal(.break) = v {
+                if case .literal(.break) = k {
                     break
                 }
                 a.append(k)
                 a.append(v)
             }
         }
-        return .map(a, isIndefinite: indefinite)
+        return .map(a)
     }
 
     private func getLength(c: UInt8) -> Int? {
@@ -170,6 +164,26 @@ public class CborScanner {
         }
     }
 }
-    // Replace this in scanSequence
+
+extension CborScanner {
+    private func validateDefiniteLength(_ c: UInt8) throws {
+        if c == 0x1F {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: [],
+                debugDescription: "DAG-CBOR does not allow indefinite-length encoding."
+            ))
+        }
+    }
+
     private func scanSequence(additional c: UInt8) -> Data {
+
+        try! validateDefiniteLength(c)
+        return read(getLength(c: c)!)
+    }
+
     private func getLength(c: UInt8) throws -> Int {
+        try validateDefiniteLength(c)
+        let (data, type) = _scanUInt(c: c)
+        return Int(truncatingIfNeeded: bigEndianFixedWidthInt(data, as: type))
+    }
+}
