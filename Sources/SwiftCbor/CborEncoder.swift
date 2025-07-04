@@ -1,6 +1,6 @@
 import Foundation
 
-internal protocol _CborDictionaryEncodableMarker {}
+private protocol _CborDictionaryEncodableMarker {}
 
 extension Dictionary: _CborDictionaryEncodableMarker where Key: Encodable, Value: Encodable {}
 
@@ -139,8 +139,8 @@ internal enum CborFuture {
     }
 
     class RefMap {
-        var keys: [CborStringKey] = []
-        var dict: [String: CborFuture] = [:]
+        private(set) var keys: [CborStringKey] = []
+        private(set) var dict: [String: CborFuture] = [:]
         init() {
             dict.reserveCapacity(20)
         }
@@ -399,7 +399,7 @@ internal extension _SpecialTreatmentEncoder {
     }
 }
 
-internal struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, _SpecialTreatmentEncoder {
+private struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, _SpecialTreatmentEncoder {
     let encoder: _CborEncoder
     let codingPath: [CodingKey]
 
@@ -473,20 +473,20 @@ internal struct CborSingleValueEncodingContainer: SingleValueEncodingContainer, 
     }
 
     @inline(__always)
-    internal func encodeInt<T: SignedInteger & FixedWidthInteger>(_ value: T) throws {
+    private func encodeInt<T: SignedInteger & FixedWidthInteger>(_ value: T) throws {
         encoder.singleValue = try encoder.wrapInt(value, for: nil)
     }
 
     @inline(__always)
-    internal func encodeFloat<T: FloatingPoint & DataNumber>(_ value: T) throws {
+    private func encodeFloat<T: FloatingPoint & DataNumber>(_ value: T) throws {
         encoder.singleValue = try encoder.wrapFloat(value, for: nil)
     }
 }
 
-internal struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
-    internal let encoder: _CborEncoder
+private struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+    private let encoder: _CborEncoder
     let array: CborFuture.RefArray
-    var codingPath: [CodingKey]
+    private(set) var codingPath: [CodingKey]
     var count: Int {
         array.array.count
     }
@@ -569,15 +569,15 @@ internal struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         array.append(encoded ?? .Nil)
     }
 
-    internal func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger) throws {
+    private func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger) throws {
         try array.append(encoder.wrapUInt(value, for: nil))
     }
 
-    internal func encodeInt(_ value: some SignedInteger & FixedWidthInteger) throws {
+    private func encodeInt(_ value: some SignedInteger & FixedWidthInteger) throws {
         try array.append(encoder.wrapInt(value, for: nil))
     }
 
-    internal func encodeFloat(_ value: some FloatingPoint & DataNumber) throws {
+    private func encodeFloat(_ value: some FloatingPoint & DataNumber) throws {
         try array.append(encoder.wrapFloat(value, for: nil))
     }
 
@@ -602,12 +602,12 @@ internal struct CborUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     }
 }
 
-internal struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol {
+private struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol {
     typealias Key = K
 
-    internal let encoder: _CborEncoder
+    private let encoder: _CborEncoder
     let map: CborFuture.RefMap
-    var codingPath: [CodingKey]
+    private(set) var codingPath: [CodingKey]
 
     init(referencing encoder: _CborEncoder, codingPath: [CodingKey]) {
         self.encoder = encoder
@@ -714,17 +714,17 @@ internal struct CborKeyedEncodingContainer<K: CodingKey>: KeyedEncodingContainer
         return newEncoder
     }
 
-    internal func encodeFloat(_ value: some FloatingPoint & DataNumber, for key: Key) throws {
+    private func encodeFloat(_ value: some FloatingPoint & DataNumber, for key: Key) throws {
         let value = try encoder.wrapFloat(value, for: nil)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
 
-    internal func encodeInt(_ value: some SignedInteger & FixedWidthInteger, for key: Key) throws {
+    private func encodeInt(_ value: some SignedInteger & FixedWidthInteger, for key: Key) throws {
         let value = try encoder.wrapInt(value, for: key)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
 
-    internal func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger, forKey key: Key) throws {
+    private func encodeUInt(_ value: some UnsignedInteger & FixedWidthInteger, forKey key: Key) throws {
         let value = try encoder.wrapUInt(value, for: key)
         try map.set(value, for: encoder.wrapStringKey(key.stringValue, for: key))
     }
@@ -752,7 +752,7 @@ struct CborKey: CodingKey {
     static let `super`: CborKey = .init(stringValue: "super")
 }
 
-func bigEndianFixedWidthInt<T: FixedWidthInteger>(_ data: Data, as _: T.Type) -> T {
+public func bigEndianFixedWidthInt<T: FixedWidthInteger>(_ data: Data, as _: T.Type) -> T {
     T(bigEndian: data.withUnsafeBytes { $0.baseAddress?.assumingMemoryBound(to: T.self).pointee ?? 0 })
 }
 

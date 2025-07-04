@@ -1,21 +1,21 @@
 import Foundation
 
-class CborScanner {
-    internal let data: Data
-    internal var off: Int
-    init(data: Data) {
+public class CborScanner {
+    private let data: Data
+    private var off: Int
+    public init(data: Data) {
         self.data = data
         off = 0
     }
 
-    internal func read(_ n: Int) -> Data {
+    private func read(_ n: Int) -> Data {
         defer {
             off += n
         }
         return data[off ..< (off + n)]
     }
 
-    func scan() -> CborValue {
+    public func scan() -> CborValue {
         switch readOpCode() {
             case let .uint(a):
                 scanUInt(additional: a)
@@ -38,37 +38,25 @@ class CborScanner {
         }
     }
 
-    internal func scanUInt(additional c: UInt8) -> CborValue {
+    private func scanUInt(additional c: UInt8) -> CborValue {
         let (data, type) = _scanUInt(c: c)
         return .literal(.uint(data, type))
     }
 
-    internal func scanNInt(additional c: UInt8) -> CborValue {
+    private func scanNInt(additional c: UInt8) -> CborValue {
         let (data, type) = _scanUInt(c: c)
         return .literal(.int(data, type))
     }
 
-    internal func scanBinaryString(additional: UInt8) -> CborValue {
+    private func scanBinaryString(additional: UInt8) -> CborValue {
         .literal(.bin(scanSequence(additional: additional)))
     }
 
-    internal func scanString(additional: UInt8) -> CborValue {
+    private func scanString(additional: UInt8) -> CborValue {
         .literal(.str(scanSequence(additional: additional)))
     }
 
-    internal func scanSequence(additional c: UInt8) -> Data {
-        if let n = getLength(c: c) {
-            return read(n)
-        } else {
-            let start = off
-            while data[off] != 0xFF {
-                off += 1
-            }
-            return data[start ..< off]
-        }
-    }
-
-    internal func scanFloat(additional c: UInt8) -> CborValue {
+    private func scanFloat(additional c: UInt8) -> CborValue {
         switch c {
             case 0x00 ... 0x13:
                     .literal(.uint(.init([c]), UInt8.self))
@@ -93,12 +81,12 @@ class CborScanner {
         }
     }
 
-    internal func scanTaggedValue(additional c: UInt8) -> CborValue {
+    private func scanTaggedValue(additional c: UInt8) -> CborValue {
         let (data, type) = _scanUInt(c: c)
         return .tagged(tag: .uint(data, type), value: scan())
     }
 
-    internal func scanArray(additional c: UInt8) -> CborValue {
+    private func scanArray(additional c: UInt8) -> CborValue {
         var a: [CborValue] = []
         let indefinite: Bool
         if let n = getLength(c: c) {
@@ -120,7 +108,7 @@ class CborScanner {
         return .array(a, isIndefinite: indefinite)
     }
 
-    internal func scanMap(additional c: UInt8) -> CborValue {
+    private func scanMap(additional c: UInt8) -> CborValue {
         var a: [CborValue] = []
         let indefinite: Bool
         if let n = getLength(c: c) {
@@ -148,14 +136,13 @@ class CborScanner {
         return .map(a, isIndefinite: indefinite)
     }
 
-
-    internal func getLength(c: UInt8) -> Int? {
+    private func getLength(c: UInt8) -> Int? {
         guard c != 0x1F else { return nil }
         let (data, type) = _scanUInt(c: c)
         return Int(truncatingIfNeeded: bigEndianFixedWidthInt(data, as: type))
     }
 
-    internal func _scanUInt(c: UInt8) -> (Data, any FixedWidthInteger.Type) {
+    private func _scanUInt(c: UInt8) -> (Data, any FixedWidthInteger.Type) {
         switch c {
             case 0x00 ... 0x17:
                 (.init([c]), UInt8.self)
@@ -172,7 +159,7 @@ class CborScanner {
         }
     }
 
-    internal func readOpCode() -> CborOpCode {
+    private func readOpCode() -> CborOpCode {
         if off < data.count {
             defer {
                 off += 1
@@ -183,3 +170,6 @@ class CborScanner {
         }
     }
 }
+    // Replace this in scanSequence
+    private func scanSequence(additional c: UInt8) -> Data {
+    private func getLength(c: UInt8) throws -> Int {

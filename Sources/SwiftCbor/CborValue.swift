@@ -1,6 +1,6 @@
 import Foundation
 
-enum CborValueLiteralType {
+public enum CborValueLiteralType {
     case `nil`
     case `break`
     case bool(Bool)
@@ -81,7 +81,7 @@ struct CborStringKey {
     let CborValue: CborEncodedValue
 }
 
-indirect enum CborValue {
+public indirect enum CborValue {
     case none
     case literal(CborValueLiteralType)
     case array([CborValue], isIndefinite: Bool = false)
@@ -128,6 +128,7 @@ extension CborValue {
                     let key = a[i * 2]
                     let value = a[i * 2 + 1]
                     d.append((key, value))
+    private func toEncodedValue() -> CborEncodedValue {
                 }
                 return d
         }
@@ -159,7 +160,7 @@ extension CborValue {
             return bytes
         }
 
-        internal func writeValue(_ value: CborEncodedValue, into bytes: inout [UInt8]) {
+        private func writeValue(_ value: CborEncodedValue, into bytes: inout [UInt8]) {
             switch value {
                 case let .literal(data):
                     bytes.append(contentsOf: data)

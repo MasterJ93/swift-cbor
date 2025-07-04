@@ -1,10 +1,10 @@
 import Foundation
 
-internal protocol _CborDictionaryDecodableMarker {}
+private protocol _CborDictionaryDecodableMarker {}
 
 extension Dictionary: _CborDictionaryDecodableMarker where Key: Encodable, Value: Decodable {}
 
-internal protocol _CborArrayDecodableMarker {}
+private protocol _CborArrayDecodableMarker {}
 
 extension Array: _CborArrayDecodableMarker where Element: Decodable {}
 
@@ -25,7 +25,9 @@ open class CborDecoder {
     }
 }
 
-internal class _CborDecoder: Decoder {
+private class _CborDecoder: CBORAccessibleDecoder {
+    var cborValue: CborValue?
+
     var codingPath: [CodingKey]
     var value: CborValue
     var userInfo: [CodingUserInfoKey: Any] = [:]
@@ -42,7 +44,7 @@ internal class _CborDecoder: Decoder {
                 debugDescription: "Expected to decode \([String: Any].self) but found \(value.debugDataTypeDescription) instead."
             ))
         }
-        return KeyedDecodingContainer(CborKeyedDecodingContainer<Key>(referencing: self, container: value))
+        return try KeyedDecodingContainer(CborKeyedDecodingContainer<Key>(referencing: self, container: value))
     }
 
     func unkeyedContainer() throws -> UnkeyedDecodingContainer {
@@ -63,7 +65,7 @@ internal class _CborDecoder: Decoder {
     }
 }
 
-internal extension _CborDecoder {
+private extension _CborDecoder {
     @inline(__always)
     func checkNotNull<T>(_ type: CborValueLiteralType, expectedType: T.Type) throws {
         if case .nil = type {
@@ -335,7 +337,7 @@ extension _CborDecoder {
         return value
     }
 
-    internal func checkDictionay<T: Decodable>(as _: T.Type) throws {
+    private func checkDictionay<T: Decodable>(as _: T.Type) throws {
         guard (T.self as? (_CborDictionaryDecodableMarker & Decodable).Type) != nil else {
             preconditionFailure("Must only be called of T implements _CborDictionaryDecodableMarker")
         }
@@ -347,7 +349,7 @@ extension _CborDecoder {
         }
     }
 
-    internal func checkArray<T: Decodable>(as _: T.Type) throws {
+    private func checkArray<T: Decodable>(as _: T.Type) throws {
         guard (T.self as? (_CborArrayDecodableMarker & Decodable).Type) != nil else {
             preconditionFailure("Must only be called of T implements _CborArrayDecodableMarker")
         }
@@ -360,7 +362,7 @@ extension _CborDecoder {
     }
 }
 
-internal struct _CborSingleValueDecodingContainer: SingleValueDecodingContainer {
+private struct _CborSingleValueDecodingContainer: SingleValueDecodingContainer {
     let decoder: _CborDecoder
     let codingPath: [CodingKey]
     let value: CborValue
@@ -440,11 +442,11 @@ internal struct _CborSingleValueDecodingContainer: SingleValueDecodingContainer 
     }
 }
 
-internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
-    internal let decoder: _CborDecoder
-    var codingPath: [CodingKey]
-    public internal(set) var currentIndex: Int
-    internal var container: [CborValue]
+private struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
+    private let decoder: _CborDecoder
+    private(set) var codingPath: [CodingKey]
+    public private(set) var currentIndex: Int
+    private var container: [CborValue]
 
     init(referencing decoder: _CborDecoder, container: CborValue) {
         self.decoder = decoder
@@ -564,14 +566,14 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
         }
     }
 
-    internal mutating func decoderForNextElement<T>(ofType _: T.Type) throws -> _CborDecoder {
+    private mutating func decoderForNextElement<T>(ofType _: T.Type) throws -> _CborDecoder {
         let value = try getNextValue(ofType: T.self)
         let newPath = codingPath + [CborKey(index: currentIndex)]
         return _CborDecoder(from: value, at: newPath)
     }
 
     @inline(__always)
-    internal func getNextValue<T>(ofType _: T.Type) throws -> CborValue {
+    private func getNextValue<T>(ofType _: T.Type) throws -> CborValue {
         guard !isAtEnd else {
             let message = if T.self == CborUnkeyedUnkeyedDecodingContainer.self {
                 "Cannot get nested unkeyed container -- unkeyed container is at end."
@@ -595,7 +597,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeUInt() throws -> UInt {
+    private mutating func decodeUInt() throws -> UInt {
         let value = try getNextValue(ofType: UInt.self)
         let result = try decoder.unboxUInt(value)
         currentIndex += 1
@@ -603,7 +605,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeUInt8() throws -> UInt8 {
+    private mutating func decodeUInt8() throws -> UInt8 {
         let value = try getNextValue(ofType: UInt8.self)
         let result = try decoder.unboxUInt8(value)
         currentIndex += 1
@@ -611,7 +613,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeUInt16() throws -> UInt16 {
+    private mutating func decodeUInt16() throws -> UInt16 {
         let value = try getNextValue(ofType: UInt16.self)
         let result = try decoder.unboxUInt16(value)
         currentIndex += 1
@@ -619,7 +621,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeUInt32() throws -> UInt32 {
+    private mutating func decodeUInt32() throws -> UInt32 {
         let value = try getNextValue(ofType: UInt32.self)
         let result = try decoder.unboxUInt32(value)
         currentIndex += 1
@@ -627,7 +629,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeUInt64() throws -> UInt64 {
+    private mutating func decodeUInt64() throws -> UInt64 {
         let value = try getNextValue(ofType: UInt64.self)
         let result = try decoder.unboxUInt64(value)
         currentIndex += 1
@@ -635,7 +637,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeInt() throws -> Int {
+    private mutating func decodeInt() throws -> Int {
         let value = try getNextValue(ofType: Int.self)
         let result = try decoder.unboxInt(value)
         currentIndex += 1
@@ -643,7 +645,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeInt8() throws -> Int8 {
+    private mutating func decodeInt8() throws -> Int8 {
         let value = try getNextValue(ofType: Int8.self)
         let result = try decoder.unboxInt8(value)
         currentIndex += 1
@@ -651,7 +653,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeInt16() throws -> Int16 {
+    private mutating func decodeInt16() throws -> Int16 {
         let value = try getNextValue(ofType: Int16.self)
         let result = try decoder.unboxInt16(value)
         currentIndex += 1
@@ -659,7 +661,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeInt32() throws -> Int32 {
+    private mutating func decodeInt32() throws -> Int32 {
         let value = try getNextValue(ofType: Int32.self)
         let result = try decoder.unboxInt32(value)
         currentIndex += 1
@@ -667,7 +669,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeInt64() throws -> Int64 {
+    private mutating func decodeInt64() throws -> Int64 {
         let value = try getNextValue(ofType: Int64.self)
         let result = try decoder.unboxInt64(value)
         currentIndex += 1
@@ -675,7 +677,7 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(__always)
-    internal mutating func decodeFloat<T: BinaryFloatingPoint & DataNumber>(as _: T.Type) throws -> T {
+    private mutating func decodeFloat<T: BinaryFloatingPoint & DataNumber>(as _: T.Type) throws -> T {
         let value = try getNextValue(ofType: T.self)
         let result = try decoder.unboxFloat(value, as: T.self)
         currentIndex += 1
@@ -683,16 +685,16 @@ internal struct CborUnkeyedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 }
 
-internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerProtocol {
+private struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerProtocol {
     typealias Key = K
 
-    internal let decoder: _CborDecoder
-    var codingPath: [CodingKey]
-    internal var container: [String: CborValue]
+    private let decoder: _CborDecoder
+    private(set) var codingPath: [CodingKey]
+    private var container: [String: CborValue]
 
     static func asDictionary(value CborValue: CborValue, using decoder: _CborDecoder) -> [String: CborValue] {
         var result: [String: CborValue] = [:]
-        let a = CborValue.asDictionary()
+        let a = try CborValue.asDictionary()
         result.reserveCapacity(a.count)
         for (keyvalue, value) in a {
             guard let key = try? decoder.unbox(keyvalue, as: String.self) else {
@@ -815,14 +817,14 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
         try decoderForKey(key)
     }
 
-    internal func decoderForKey(_ key: some CodingKey) throws -> _CborDecoder {
+    private func decoderForKey(_ key: some CodingKey) throws -> _CborDecoder {
         let value = try getValue(forKey: key)
         let newPath: [CodingKey] = codingPath + [key]
         return _CborDecoder(from: value, at: newPath)
     }
 
     @inline(__always)
-    internal func getValue<LocalKey: CodingKey>(forKey key: LocalKey) throws -> CborValue {
+    private func getValue<LocalKey: CodingKey>(forKey key: LocalKey) throws -> CborValue {
         guard let value = container[key.stringValue] else {
             let context = DecodingError.Context(codingPath: codingPath, debugDescription: "No value assosiated with key \(key) (\"\(key.stringValue)\"")
             throw DecodingError.keyNotFound(key, context)
@@ -831,13 +833,13 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeFloat<T: BinaryFloatingPoint & DataNumber>(key: K) throws -> T {
+    private func decodeFloat<T: BinaryFloatingPoint & DataNumber>(key: K) throws -> T {
         let value = try getValue(forKey: key)
         return try decoder.unboxFloat(value, as: T.self)
     }
 
     @inline(__always)
-    internal func decodeInt(key: K) throws -> Int {
+    private func decodeInt(key: K) throws -> Int {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxInt(value)
@@ -850,7 +852,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeInt8(key: K) throws -> Int8 {
+    private func decodeInt8(key: K) throws -> Int8 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxInt8(value)
@@ -863,7 +865,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeInt16(key: K) throws -> Int16 {
+    private func decodeInt16(key: K) throws -> Int16 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxInt16(value)
@@ -876,7 +878,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeInt32(key: K) throws -> Int32 {
+    private func decodeInt32(key: K) throws -> Int32 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxInt32(value)
@@ -889,7 +891,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeInt64(key: K) throws -> Int64 {
+    private func decodeInt64(key: K) throws -> Int64 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxInt64(value)
@@ -902,7 +904,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeUInt(key: K) throws -> UInt {
+    private func decodeUInt(key: K) throws -> UInt {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxUInt(value)
@@ -915,7 +917,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeUInt8(key: K) throws -> UInt8 {
+    private func decodeUInt8(key: K) throws -> UInt8 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxUInt8(value)
@@ -928,7 +930,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeUInt16(key: K) throws -> UInt16 {
+    private func decodeUInt16(key: K) throws -> UInt16 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxUInt16(value)
@@ -941,7 +943,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeUInt32(key: K) throws -> UInt32 {
+    private func decodeUInt32(key: K) throws -> UInt32 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxUInt32(value)
@@ -954,7 +956,7 @@ internal struct CborKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainer
     }
 
     @inline(__always)
-    internal func decodeUInt64(key: K) throws -> UInt64 {
+    private func decodeUInt64(key: K) throws -> UInt64 {
         let value = try getValue(forKey: key)
         do {
             return try decoder.unboxUInt64(value)
@@ -981,7 +983,7 @@ extension CborDecodingError {
     }
 }
 
-internal extension Optional {
+private extension Optional {
     mutating func _setIfNil(to value: Wrapped) {
         guard _fastPath(self == nil) else { return }
         self = value
