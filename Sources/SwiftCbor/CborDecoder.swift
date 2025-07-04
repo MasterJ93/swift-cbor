@@ -25,7 +25,7 @@ open class CborDecoder {
     }
 }
 
-private class _CborDecoder: CBORAccessibleDecoder {
+private class _CborDecoder: Decoder {
     var cborValue: CborValue?
 
     var codingPath: [CodingKey]
