@@ -23,6 +23,27 @@ open class CborDecoder {
             throw error
         }
     }
+
+    open func decodeAll<T: Decodable>(_ type: T.Type, from data: Data) throws -> [T] {
+        var results: [T] = []
+        let scanner = CborScanner(data: data)
+        while scanner.offset < data.count {
+            let startOffset = scanner.offset
+            let value = scanner.scan()
+            if case .none = value { break }
+
+            if scanner.offset == startOffset {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: [],
+                    debugDescription: "CBOR scanner did not advance, potential infinite loop"
+                ))
+            }
+            let decoder = _CborDecoder(from: value)
+            let obj = try decoder.unwrap(as: T.self)
+            results.append(obj)
+        }
+        return results
+    }
 }
 
 private class _CborDecoder: Decoder {

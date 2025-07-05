@@ -1,6 +1,7 @@
 import Foundation
 
 public class CborScanner {
+    internal var offset: Int { off }
     private let data: Data
     private var off: Int
     public init(data: Data) {
